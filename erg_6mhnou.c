@@ -67,10 +67,21 @@ void execute_transaction(int user_position);
 int get_provider_position(char provider_code[4]);
 Date generate_date();
 char *generate_transaction_id(Date t_date, char executor[21], int transaction_number);
+void change_my_password(int user_position);
+void add_transaction_to_user(int user_position, Transaction t);
+void add_transaction_to_system(Transaction t);
+void admin_login();
+void admin_dashboard_menu();
+void print_transaction(Transaction t);
+void view_last_transactions();
+void search_user_menu();
+void find_user();
+void print_cipher(char password[21]);
 
 //GLOBALS
 char sCAR[] = "CAR", sIDC[] = "IDC", sPPT[] = "PPT", sTFF[] = "TFF", sEGC[] = "EGC", sTMR[] = "TMR";
 struct public_transactions *g_availableTransactions;
+int f_u = -1, r_u = -1, f_s = -1, r_s = -1, admin_next_trans = 0;
 
 int main(int argc, char const *argv[]){
     struct public_transactions availableTransactions[6];
@@ -88,7 +99,7 @@ void main_menu_func(){
     int ep;
 
     do{
-        do{
+        do{     //MENU
             homepage_menu();
             printf("\nChoice: ");
             scanf(" %d", &ep);
@@ -116,7 +127,8 @@ void main_menu_func(){
             break;
 
         case 3:
-            /* code */
+            admin_login();
+
             break;
         
         default:
@@ -369,7 +381,6 @@ void erase_user_data(int p){
 
 void customer_dashboard_menu(){
     printf("-Customer Dashboard Menu-\n\n");
-    //printf("Name: %s Balance: %f", eBankingSystem.system_users[p].username);
     printf("0. Logout\n");
     printf("1. View Available Transactions\n");
     printf("2. Execute Transaction\n");
@@ -383,7 +394,7 @@ void customer_login(){
     system("cls");
     printf("-Customer Login-\n\n");
 
-    do{
+    do{     //ELGXOS USERNAME K PASSWORD POU EDWSE
         printf("Enter your username: ");
         scanf(" %s", &username);
         
@@ -422,7 +433,7 @@ void customer_login(){
     int ep;
 
     do{
-        do{
+        do{     //CUSTOMER DASHBOARD MENU
             printf("Name: %s   Balance: %.2f\n", eBankingSystem.system_users[p].username, eBankingSystem.system_users[p].wallet);
             customer_dashboard_menu();
             printf("\nChoice: ");
@@ -447,7 +458,7 @@ void customer_login(){
             break;
 
         case 3:
-            /* code */
+            change_my_password(p);
             break;
         
         default:
@@ -464,10 +475,9 @@ void customer_login(){
 
 int get_username_position(char username[21]){
     int pi = -1;
-
+    // EPISTROFH THS 8ESHS KAPOIOU USER ME BASH TO USERNAME
     for (int i = 0; i <= eBankingSystem.amount_of_users; i++){
         if (strcmp(username, eBankingSystem.system_users[i].username) == 0){
-            //flag = 1;
             pi = i;
             return pi;
         }
@@ -480,6 +490,7 @@ int get_username_position(char username[21]){
 }
 
 void initialize_available_transactions(){
+    //ARXIKOPOIHSH OLWN TWN DHMOSIWN SYNALLAGWN
     strcpy(g_availableTransactions[0].transaction_name, "Car License");
     strcpy(g_availableTransactions[0].transaction_provider, "Transport Ministry");
     strcpy(g_availableTransactions[0].transaction_code, "CAR");
@@ -513,7 +524,7 @@ void initialize_available_transactions(){
 
 void view_available_transactions(){
     system("cls");
-
+    //EMFANISH TWN DHMOSIWN SYNALLAGWN OMORFA SE PINAKAKI
     printf("Name of Transaction\tProvider\t\tCode\tCost\n");
     for (int i = 0; i < 6; i++){
         printf("%-23s\t%-22s\t%-4s\t%-d\n", g_availableTransactions[i].transaction_name, g_availableTransactions[i].transaction_provider, g_availableTransactions[i].transaction_code, g_availableTransactions[i].transaction_cost);
@@ -532,19 +543,24 @@ void execute_transaction(int user_position){
     system("cls");
     printf("-Transaction Menu-\n\n");
 
-    do{
+    do{     //ELGXOS GIA TON RECEIVER POU EDWSE
         printf("Please type the username of an existing user or a Public Transaction Code: ");
         scanf(" %s", &trans.transaction_receiver);
         p = get_provider_position(trans.transaction_receiver);
         if (p == -1){
 
             p = get_username_position(trans.transaction_receiver);
+            while (p == user_position){
+                printf("You can't tranfer money to yourself!\nPlease type another username: ");
+                scanf(" %s", &trans.transaction_receiver);
+                p = get_username_position(trans.transaction_receiver);
+            }
+            
             if(p == -1){
                 lives--;
                 printf("Couldn't find any username or public transaction matching your input. Please try again, you have %d more attempts\n", lives);
             }
             else{
-                printf("\nmphke\n");
                 flag = 1;
             }
         }
@@ -569,9 +585,8 @@ void execute_transaction(int user_position){
 
     lives = 3;
 
-    if (flag == 1){
+    if (flag == 1){     //XRHSTHS
         do{
-            printf("\nperrson\n");
             scanf(" %f", &trans.transaction_amount);
             if (trans.transaction_amount <= 0){
                 lives--;
@@ -601,20 +616,27 @@ void execute_transaction(int user_position){
             system("cls");
             return;
         }
-
+        // OLES OI ENERGEIES GIA NA GINEI TO TRANSACTION KAI NA KATAGRAFH STO SYSTHMA
+        strcpy(trans.transaction_executor, eBankingSystem.system_users[user_position].username);
         eBankingSystem.system_users[user_position].next_transaction_number = eBankingSystem.system_users[user_position].number_of_transactions;
         eBankingSystem.system_users[user_position].number_of_transactions++;
+        eBankingSystem.number_of_transactions++;
         trans.transaction_date = generate_date();
-        strcpy(trans.transaction_executor, eBankingSystem.system_users[user_position].username);
+        char *pTr_id = generate_transaction_id(trans.transaction_date, trans.transaction_executor, eBankingSystem.system_users[user_position].next_transaction_number);
+        for (int i = 0; i < 35; i++){
+            trans.transaction_id[i] = *(pTr_id+i);
+        }
         eBankingSystem.system_users[user_position].wallet -= trans.transaction_amount;
         eBankingSystem.system_users[p].wallet += trans.transaction_amount;
+        add_transaction_to_user(user_position, trans);
+        add_transaction_to_system(trans);
 
         printf("Payment was successful!");
         Sleep(2500);
         system("cls");
         
     }
-    else{
+    else{      //DHMOSIOS
         
         do{
             scanf(" %f", &trans.transaction_amount);
@@ -634,18 +656,8 @@ void execute_transaction(int user_position){
                     return;
                 }
             }
-
-            printf("Enter your password for payment verification: ");
-            scanf(" %s", &password);
-
-            if (strcmp(eBankingSystem.system_users[user_position].password, password) != 0){
-                printf("Wrong password. You will be returned to Customer Dashboard");
-                Sleep(2000);
-                system("cls");
-                return;
-            }
             
-        } while (((trans.transaction_amount <= 0) || (trans.transaction_amount != g_availableTransactions[p].transaction_cost) || (trans.transaction_amount > eBankingSystem.system_users[user_position].wallet)) && lives > 0);
+        } while (((trans.transaction_amount <= 0) || (trans.transaction_amount != g_availableTransactions[p].transaction_cost)) && lives > 0);
         
         if (lives == 0){
             printf("\nYou have surpassed your available attempts.\nPress Enter to return to the Customer Dashboard\n");
@@ -655,11 +667,29 @@ void execute_transaction(int user_position){
             return;
         }
 
+        printf("Enter your password for payment verification: ");
+        scanf(" %s", &password);
+
+        if (strcmp(eBankingSystem.system_users[user_position].password, password) != 0){
+            printf("Wrong password. You will be returned to Customer Dashboard");
+            Sleep(2000);
+            system("cls");
+            return;
+        }
+        // OLES OI ENERGEIES GIA NA GINEI TO TRANSACTION KAI NA KATAGRAFH STO SYSTHMA
+        strcpy(trans.transaction_executor, eBankingSystem.system_users[user_position].username);
         eBankingSystem.system_users[user_position].next_transaction_number = eBankingSystem.system_users[user_position].number_of_transactions;
         eBankingSystem.system_users[user_position].number_of_transactions++;
+        eBankingSystem.number_of_transactions++;
         trans.transaction_date = generate_date();
-        strcpy(trans.transaction_executor, eBankingSystem.system_users[user_position].username);
+        char *pTr_id = generate_transaction_id(trans.transaction_date, trans.transaction_executor, eBankingSystem.system_users[user_position].next_transaction_number);
+        for (int i = 0; i < 35; i++){
+            trans.transaction_id[i] = *(pTr_id+i);
+        }
         eBankingSystem.system_users[user_position].wallet -= trans.transaction_amount;
+        add_transaction_to_user(user_position, trans);
+        add_transaction_to_system(trans);
+
 
         printf("Payment was successful!");
         Sleep(2500);
@@ -669,6 +699,7 @@ void execute_transaction(int user_position){
 }
 
 int get_provider_position(char provider_code[4]){
+    // EPISTROFH THS 8ESHS KAPOIOU DHMOSIOU ME BASH TON RECEIVER POU EDWSE O USER
     for (int i = 0; i < 6; i++){
         if (strcmp(provider_code, g_availableTransactions[i].transaction_code) == 0){
             return i;
@@ -679,6 +710,7 @@ int get_provider_position(char provider_code[4]){
 }
 
 Date generate_date(){
+    //KANEI AUTO POU LEEI
     Date d;
 
     time_t t = time(NULL);
@@ -692,7 +724,9 @@ Date generate_date(){
 }
 
 char *generate_transaction_id(Date t_date, char executor[21], int transaction_number){
+    //EPISHS KANEI AUTO POU LEEI
     char tr_id[35], dd[3], mm[3], yyyy[5], sTransaction_number[5];
+    char *s_ptr = tr_id;
 
     sprintf(dd, "%d", t_date.dd);
     sprintf(mm, "%d", t_date.mm);
@@ -700,17 +734,387 @@ char *generate_transaction_id(Date t_date, char executor[21], int transaction_nu
     sprintf(sTransaction_number, "%d", transaction_number);
 
     strcpy(tr_id, executor);
-    tr_id[strlen(tr_id)] = '_';
-    strcat(tr_id,dd);
-    strcat(tr_id,mm);
-    strcat(tr_id,yyyy);
-    tr_id[strlen(tr_id)] = '_';
+    strcat(tr_id, "_");
+    if(strlen(dd)==1){
+        strcat(tr_id, "0");
+        strcat(tr_id, dd);
+    }
+    else{
+        strcat(tr_id, dd);
+    }
+    
+    if (strlen(mm)==1){
+        strcat(tr_id, "0");
+        strcat(tr_id, mm);
+    }
+    else{
+        strcat(tr_id, mm);
+    }
+    
+    strcat(tr_id, yyyy);
+    strcat(tr_id, "_");
+    
+    if (strlen(sTransaction_number) == 1){
+        strcat(tr_id, "000");
+        strcat(tr_id, sTransaction_number);
+    }
+    else if (strlen(sTransaction_number) == 2){
+        strcat(tr_id, "00");
+        strcat(tr_id, sTransaction_number);
+    }
+    else if (strlen(sTransaction_number) == 3){
+        strcat(tr_id, "0");
+        strcat(tr_id, sTransaction_number);
+    }
+    else{
+        strcat(tr_id, sTransaction_number);
+    }
+    
+    return s_ptr;
+}
 
-    for (int i = strlen(tr_id); i < strlen(tr_id)+4; i++){
-        if (strlen()){
-            /* code */
+void add_transaction_to_user(int user_position, Transaction t){
+    //int f = -1, r = -1;
+
+    if (r_u == 4){     //Full
+        for (int i = 1; i < 5; i++){
+            eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_id[0] = '\0';
+            eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_executor[0] = '\0';
+            eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_receiver[0] = '\0';
+            strcpy(eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_id, eBankingSystem.system_users[user_position].latest_transactions[i].transaction_id);
+            eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_date = eBankingSystem.system_users[user_position].latest_transactions[i].transaction_date;
+            eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_amount = eBankingSystem.system_users[user_position].latest_transactions[i].transaction_amount;
+            strcpy(eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_executor, eBankingSystem.system_users[user_position].latest_transactions[i].transaction_executor);
+            strcpy(eBankingSystem.system_users[user_position].latest_transactions[i-1].transaction_receiver, eBankingSystem.system_users[user_position].latest_transactions[i].transaction_receiver);
+        }
+        eBankingSystem.system_users[user_position].latest_transactions[4].transaction_id[0] = '\0';
+        eBankingSystem.system_users[user_position].latest_transactions[4].transaction_executor[0] = '\0';
+        eBankingSystem.system_users[user_position].latest_transactions[4].transaction_receiver[0] = '\0';
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[4].transaction_id, t.transaction_id);
+        eBankingSystem.system_users[user_position].latest_transactions[4].transaction_date = t.transaction_date;
+        eBankingSystem.system_users[user_position].latest_transactions[4].transaction_amount = t.transaction_amount;
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[4].transaction_executor, t.transaction_executor);
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[4].transaction_receiver, t.transaction_receiver);
+    }
+    else if (f_u == -1 && r_u == -1){     //adeia
+        f_u = 0;
+        r_u = 0;
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_id, t.transaction_id);
+        eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_date = t.transaction_date;
+        eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_amount = t.transaction_amount;
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_executor, t.transaction_executor);
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_receiver, t.transaction_receiver);
+    }
+    else{   //oute adeia oute gemath
+        r_u += 1;
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_id, t.transaction_id);
+        eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_date = t.transaction_date;
+        eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_amount = t.transaction_amount;
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_executor, t.transaction_executor);
+        strcpy(eBankingSystem.system_users[user_position].latest_transactions[r_u].transaction_receiver, t.transaction_receiver);
+    }
+    
+    
+}
+
+void add_transaction_to_system(Transaction t){
+    //int f = -1, r = -1;
+
+    if (r_s == 19){     //Full
+        for (int i = 1; i < 20; i++){
+            eBankingSystem.system_latest_transactions[i-1].transaction_id[0] = '\0';
+            eBankingSystem.system_latest_transactions[i-1].transaction_executor[0] = '\0';
+            eBankingSystem.system_latest_transactions[i-1].transaction_receiver[0] = '\0';
+            strcpy(eBankingSystem.system_latest_transactions[i-1].transaction_id, eBankingSystem.system_latest_transactions[i].transaction_id);
+            eBankingSystem.system_latest_transactions[i-1].transaction_date = eBankingSystem.system_latest_transactions[i].transaction_date;
+            eBankingSystem.system_latest_transactions[i-1].transaction_amount = eBankingSystem.system_latest_transactions[i].transaction_amount;
+            strcpy(eBankingSystem.system_latest_transactions[i-1].transaction_executor, eBankingSystem.system_latest_transactions[i].transaction_executor);
+            strcpy(eBankingSystem.system_latest_transactions[i-1].transaction_receiver, eBankingSystem.system_latest_transactions[i].transaction_receiver);
+        }
+        strcpy(eBankingSystem.system_latest_transactions[19].transaction_id,t.transaction_id);
+        eBankingSystem.system_latest_transactions[19].transaction_date = t.transaction_date;
+        eBankingSystem.system_latest_transactions[19].transaction_amount = t.transaction_amount;
+        strcpy(eBankingSystem.system_latest_transactions[19].transaction_executor, t.transaction_executor);
+        strcpy(eBankingSystem.system_latest_transactions[19].transaction_receiver, t.transaction_receiver);
+    }
+    else if (f_s == -1 && r_s == -1){     //adeia
+        f_s = 0;
+        r_s = 0;
+        strcpy(eBankingSystem.system_latest_transactions[r_s].transaction_id, t.transaction_id);
+        eBankingSystem.system_latest_transactions[r_s].transaction_date = t.transaction_date;
+        eBankingSystem.system_latest_transactions[r_s].transaction_amount = t.transaction_amount;
+        strcpy(eBankingSystem.system_latest_transactions[r_s].transaction_executor, t.transaction_executor);
+        strcpy(eBankingSystem.system_latest_transactions[r_s].transaction_receiver, t.transaction_receiver);
+    }
+    else{   //oute adeia oute gemath
+        r_s += 1;
+        strcpy(eBankingSystem.system_latest_transactions[r_s].transaction_id, t.transaction_id);
+        eBankingSystem.system_latest_transactions[r_s].transaction_date = t.transaction_date;
+        eBankingSystem.system_latest_transactions[r_s].transaction_amount = t.transaction_amount;
+        strcpy(eBankingSystem.system_latest_transactions[r_s].transaction_executor, t.transaction_executor);
+        strcpy(eBankingSystem.system_latest_transactions[r_s].transaction_receiver, t.transaction_receiver);
+    }
+}
+
+void change_my_password(int user_position){                
+    char new_password[21],verify_password[21];
+    int isValid;
+
+    system("cls");
+    printf("-Password Change-\n\n");
+    printf("*Note: the password must contain at least 7 characters, one <<!>> or <<?>> and a number.\n");       
+    do{ //ELEGXOS GIA TO AN EINAI VALID OPWS KAI STO REGISTRATION
+        printf("Enter the new password: ");                
+        scanf(" %s", &new_password);
+        isValid=valid_password(new_password);
+        if (isValid == 0){
+            printf("Invalid password, Try again.\n");
+        }         
+    }while(isValid == 0);
+
+    do{    //ELEGXOS GIA TA 2 PASSWORDS NA EINAI ISA
+        printf("Verify your new password: ");
+        scanf(" %s", &verify_password);
+        if (strcmp(new_password, verify_password) != 0){
+            printf("The two passwords doesn't match. Please try again\n");
+        }
+    } while(strcmp(new_password, verify_password) != 0);
+    
+    printf("Enter your last password to verify the change: ");
+    scanf(" %s", &verify_password);
+    if (strcmp(verify_password, eBankingSystem.system_users[user_position].password) == 0){     //EDWSE SWSTO PROHGOUMENO PASSWORD
+        printf("Password change was successful.");
+        strcpy(eBankingSystem.system_users[user_position].password, new_password);
+        Sleep(2500);
+        system("cls");
+    }
+    else{       //DEN EDWSE SWSTO PROHGOUMENO PASSWORD
+        printf("Wrong password, you will return to the Customer Dashboard");
+        Sleep(2500);
+        system("cls");
+        return;
+    }
+}
+
+void admin_dashboard_menu(){
+    printf("-Admin Dashboard Menu-\n\n");
+    printf("0. Logout\n");
+    printf("1. View Last Transactions\n");
+    printf("2. Find User\n");
+    printf("3. View Stats\n");
+}
+
+void admin_login(){
+    char username[21], password[21];
+    int flag = 0, p, lives = 5;
+
+    system("cls");
+    printf("-Admin Login-\n\n");
+
+    do{ //ELGXOS GIA TO USERNAME NA EINAI SWSTO
+        printf("Enter username: ");
+        scanf(" %s", &username);
+
+        if (strcmp(username, "admin") != 0){
+            lives--;
+            printf("Wrong username, try again. You have %d more attempts\n", lives);
         }
         
+    }while(strcmp(username, "admin") != 0 && lives > 0);
+
+    if (lives == 0){
+        printf("\nYou have surpassed your available attempts.\nPress Enter to return to the main menu\n");
+        fflush(stdin);
+        getc(stdin);
+        system("cls");
+        return;
+    }
+        
+    do{ //ELEGXOS GIA TO PASSWORD NA EINAI SWSTO
+        printf("Enter password: ");
+        scanf(" %s", &password);
+
+        if (strcmp(password, "admin123") != 0){
+            lives--;
+            printf("Wrong password, try again. You have %d more attempts\n", lives);
+        }
+        
+    }while ((strcmp(password, "admin123") != 0) && lives > 0);
+    
+    if (lives == 0){
+        printf("\nYou have surpassed your available attempts.\nPress Enter to return to the main menu\n");
+        fflush(stdin);
+        getc(stdin);
+        system("cls");
+        return;
+    }
+    
+    system("cls");
+    printf("Successful Login");
+    Sleep(4000);
+    system("cls");
+
+    int ep;
+
+    do{
+        do{// ADMIN DASHBOARD MENU
+            admin_dashboard_menu();
+            printf("\nChoice: ");
+            scanf(" %d", &ep);
+            if (!(ep == 0 || ep == 1 || ep == 2 || ep == 3)){
+                printf("Option does not exist. Please try again.\n");
+                //idea gia sleep(), clear kai emfanish to menu ksana meta
+            }   
+        } while (!(ep == 0 || ep == 1 || ep == 2 || ep == 3));
+
+        switch (ep){
+        case 1:
+            view_last_transactions();
+            
+            break;
+
+        case 2:
+            find_user();
+
+            break;
+
+        case 3:
+            //view_stats;
+
+            break;
+        
+        default:
+            break;
+        }
+        
+    }while(ep != 0);
+    
+    system("cls");
+
+    return;
+}
+
+void print_transaction(Transaction t){
+    //EKTUPWNEI TA TRANSACTIONS OPWS PREPEI GIA THN EPILOGH STO MENU TOU ADMIN
+    printf("[%s] (%d/%d/%d) %s -> %s (%.2f euros)\n", t.transaction_id, t.transaction_date.dd, t.transaction_date.mm, t.transaction_date.yyyy, t.transaction_executor, t.transaction_receiver, t.transaction_amount);
+}
+
+void view_last_transactions(){
+    system("cls");
+    printf("-Latest Transactions-\n\n");
+
+    //EPANALHPSH GIA NA EKTUPO8OUN OLA TA TRANSACTIONS POU EXOUN GINEI
+    
+    for (int i = 0; i < eBankingSystem.number_of_transactions; i++){
+        print_transaction(eBankingSystem.system_latest_transactions[i]);
+    }
+    
+    printf("\nPress Enter to return to the menu");
+    fflush(stdin);
+    getc(stdin);
+    system("cls");
+
+}
+
+void search_user_menu(){
+    printf("-User Actions-\n\n");
+    printf("A. Add Amount\n");
+    printf("B. Customer Info\n");
+    printf("*Give any other character to return to the Admin Dashboard\n");
+}
+
+void find_user(){
+    Transaction trans;
+    char username[21];
+    int p;
+
+    system("cls");
+    //ELGXOS GIA TO AN YPARXEI TO USERNAME POU DINEI
+    printf("Enter username: ");
+    scanf(" %s", &username);
+        
+    p = get_username_position(username);
+
+    if(p == -1){
+        printf("User not found. You will return back to the menu");
+        Sleep(2500);
+        system("cls");
+        return;
+    }
+    char ep;
+
+    system("cls");
+    do{
+        do{ // SEARCH USER MENU
+            search_user_menu();
+            printf("\nChoice: ");
+            scanf(" %c", &ep);
+            if (!(ep == 'A' || ep == 'B')){
+                system("cls");
+                return;
+            }   
+        } while (!(ep == 'A' || ep == 'B'));
+
+        switch (ep){
+        case 'A': // ADD AMOUNT
+            system("cls");
+
+            do{
+                printf("Enter the amount you want to add: ");
+                scanf(" %f", &trans.transaction_amount);
+                if (trans.transaction_amount <=0){
+                    printf("Must be a positive number\n");
+                }
+            }while(trans.transaction_amount <=0);
+
+            strcpy(trans.transaction_executor, "admin");
+            strcpy(trans.transaction_receiver, username);
+            eBankingSystem.number_of_transactions++;
+            trans.transaction_date = generate_date();
+            char *pTr_id = generate_transaction_id(trans.transaction_date, trans.transaction_executor, admin_next_trans);
+            for (int i = 0; i < 35; i++){
+                trans.transaction_id[i] = *(pTr_id+i);
+            }
+            admin_next_trans++;
+            add_transaction_to_system(trans);
+            eBankingSystem.system_users[p].wallet += trans.transaction_amount;
+
+            printf("Amount added.");
+            Sleep(2500);
+            system("cls");
+            
+            break;
+
+        case 'B': // CUSTOMER INFO
+            system("cls");
+            printf("-Customer Info-\n");
+            printf("User: %s\n\n", eBankingSystem.system_users[p].username);
+            printf("Name: %s\n", eBankingSystem.system_users[p].name);
+            printf("Surname: %s\n", eBankingSystem.system_users[p].surname);
+            printf("Password (encrypted): ");
+            print_cipher(eBankingSystem.system_users[p].password);
+            printf("\nWallet Balance: %.2f\n", eBankingSystem.system_users[p].wallet);
+            printf("Card Details:\n\t");
+            printf("Card Number: %s\n\t", eBankingSystem.system_users[p].card_id);
+            printf("Card Name: %s\n\t", eBankingSystem.system_users[p].card_owner);
+            printf("CVV/CVC: %s\n", eBankingSystem.system_users[p].card_cvv);
+            printf("Number of Transactions: %d\n\n", eBankingSystem.system_users[p].number_of_transactions);
+
+            printf("Press Enter to go back");
+            fflush(stdin);
+            getc(stdin);
+            system("cls");
+
+            break;
+        }
+        
+    }while(1);
+}
+
+void print_cipher(char password[21]){
+    //EKTUPOSH TOU KWDIKOU TOU XRHSTH KRYPTOGRAFIMENO
+    for (int i = 0; i < strlen(password); i++){
+        printf("%c", password[i]+5);
     }
     
 }
